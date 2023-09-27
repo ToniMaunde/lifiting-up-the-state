@@ -4,21 +4,43 @@ import type { Dispatch, FormEvent, MouseEvent, SetStateAction } from "react";
 type TTodo = {
   text: string;
   done: boolean;
+  id: string;
   creationDate: string;
 }
 
-function Todo(props: TTodo) {
+function Todo({ todo }: { todo: TTodo }) {
+
+  function handleTodoChange() {
+
+    console.log("clicked")
+    // changeTodoStatus(newStatus);
+  }
+
   return (
-    <li>
-      <p>
-        {props.text}
-      </p>
-      <span>
-        {props.done ? "done" : "not done"}
-      </span>
-      <small>
-        {props.creationDate}
-      </small>
+    <li
+      className="flex gap-2 items-center"
+    >
+      <input 
+        className="w-6 h-6 accent-purple-500"
+        type="checkbox"
+        checked={todo.done}
+        value={todo.id}
+        onChange={handleTodoChange}
+      />
+      <section>
+        <p className="font-bold font-mono text-lg">
+          {todo.text}
+        </p>
+        <small>
+          {todo.creationDate}
+        </small>
+      </section>
+      <button
+        className="bg-red-200 h-fit py-1 px-2 ml-auto rounded-sm hover:bg-red-100"
+        title="Remove todo"
+      >
+        ❌
+      </button>
     </li>
   )
 }
@@ -41,7 +63,7 @@ function SegmentedButton(props: TSegmentedButton<TTodoFilter>) {
 
   return (
     <ul
-      className="grid grid-cols-3 p-1 w-fit border border-t-gray-300 rounded-lg"
+      className="grid grid-cols-3 mx-auto mb-4 p-1 w-fit border border-t-gray-300 rounded-lg"
     >
       {
         props.values.map(value => (
@@ -70,7 +92,7 @@ function TodoList({ todos }: { todos: TTodo[] }) {
   const [layout, setLayout] = useState<TLayout>("list");
   const [filter, setFilter] = useState<TTodoFilter>("all");
 
-  useEffect(() => {
+  /* useEffect(() => {
     const params = new URLSearchParams(location.search);
 
     params.set("sortOrder", sortOrder);
@@ -78,7 +100,7 @@ function TodoList({ todos }: { todos: TTodo[] }) {
     params.set("filter", filter);
 
     window.history.replaceState({}, "", `${location.pathname}?${params}`);
-  }, [sortOrder, layout, filter])
+  }, [sortOrder, layout, filter]) */
 
   // add, edit and remove todos as well as sort, filter and display them as list or grid
 
@@ -104,12 +126,12 @@ function TodoList({ todos }: { todos: TTodo[] }) {
       />
       {
         thereAreTodos
-          ? <ul>
+          ? <ul className="grid gap-1">
             {
               listToRender.map((todo, idx) => (
                 <Todo
                   key={`${todo.creationDate}${idx}`}
-                  {...todo}
+                  todo={todo}
                 />
               ))
             }
@@ -130,14 +152,18 @@ function App() {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     const todoText = formData.get("todo") as string;
-    const newTodo: TTodo = { text: todoText, done: false, creationDate: new Date().toLocaleDateString() };
+    const creationDate = new Date().toLocaleDateString();
+    const id = `${creationDate}id${listOfTodos.length}`
+    const newTodo: TTodo = { text: todoText, done: false, id, creationDate };
 
     setList(prev => [...prev, newTodo]);
     (todoRef.current as HTMLInputElement).value = "";
   }
 
   return (
-    <>
+    <main
+      className="w-[40vw] mx-auto p-8"
+    >
       <h1
         className="text-white text-2xl font-bold mb-8"
       >
@@ -147,26 +173,24 @@ function App() {
         method="post"
         onSubmit={handleSubmit}
       >
-        <h2
-          className="text-lg mb-4"
-        >
-          Add a new todo
-        </h2>
         <label
           htmlFor="todoText"
           className="block mb-2"
         >
-          Todo
+          Add a new todo
         </label>
-        <div>
+        <div
+          className="flex gap-2 mb-4"
+        >
           <input
             type="text"
             id="todoText"
             name="todo"
+            ref={todoRef}
+            className="w-full h-full py-2 px-1 rounded-sm text-black"
             required
             autoFocus
-            ref={todoRef}
-            className="h-full py-2 px-1 mr-2 rounded-sm text-black"
+            autoComplete="off"
           />
           <button
             className="bg-purple-500 text-white py-2 px-4 rounded-sm"
@@ -175,13 +199,8 @@ function App() {
           </button>
         </div>
       </form>
-      <div>
-        <h2>
-          List of todos
-        </h2>
-        <TodoList todos={listOfTodos} />
-      </div>
-    </>
+      <TodoList todos={listOfTodos} />
+    </main>
   )
 }
 
