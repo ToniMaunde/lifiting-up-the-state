@@ -171,25 +171,30 @@ type TTodoList = {
 
 function TodoList(props: TTodoList) {
   const searchParamsObj = new URLSearchParams(location.search);
+  /*   A mecanism to force React to rerender to derive the filter value from the URL. 
+   *   This has to be done since React does not listen to changes from the URLSearchParam object.*/
+  const [_, setLastRerender] = useState<number>(Date.now());
 
-  const filter: TTodoFilter = searchParamsObj.get("filter") as TTodoFilter ?? "all";
+  let filter: TTodoFilter = searchParamsObj.get("filter") as TTodoFilter ?? "all";
 
   useEffect(() => {
-    const filterParamExists = searchParamsObj.has("filter");
-    if (!filterParamExists) {
-      // setting default filter value if absent
-      searchParamsObj.set("filter", "all");
-    }
+    const searchParamIsPresent = searchParamsObj.has("filter");
 
-    window.history.replaceState({}, "", `${location.pathname}?${searchParamsObj}`);
-  }, [filter, searchParamsObj])
+    if (!searchParamIsPresent) {
+      searchParamsObj.set("filter", "all");
+      window.history.replaceState({}, "", `${location.pathname}?${searchParamsObj}`);
+    }
+  }, [])
 
   function handleFilterChange(e: MouseEvent<HTMLButtonElement>) {
     const newFilterValue = e.currentTarget.value as TTodoFilter;
     searchParamsObj.set("filter", newFilterValue);
-
     window.history.replaceState({}, "", `${location.pathname}?${searchParamsObj}`);
+
+    setLastRerender(Date.now());
   }
+
+  console.log(location.search);
 
   function filterTodos(list: TTodo[], filter: TTodoFilter): TTodo[] {
     if (filter === "done") {
@@ -210,7 +215,6 @@ function TodoList(props: TTodoList) {
         values={["all", "done", "not done"]}
         filterValue={filter}
         handleFilterChange={handleFilterChange}
-        key={filter}
       />
       {
         thereAreTodos
