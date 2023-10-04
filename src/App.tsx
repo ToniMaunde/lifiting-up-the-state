@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import type { ChangeEvent, ChangeEventHandler, Dispatch, FormEvent, MouseEvent, MouseEventHandler, RefObject, SetStateAction } from "react";
+import type { ChangeEvent, ChangeEventHandler, FormEvent, MouseEvent, MouseEventHandler, RefObject } from "react";
 
 type TTodo = {
   text: string;
@@ -131,16 +131,19 @@ type TTodoFilter = "all" | "done" | "not done";
 
 type TSegmentedButton<T> = {
   values: string[];
-  currentFilterValue: T;
-  handler: Dispatch<SetStateAction<T>>;
+  searchParams: URLSearchParams;
 }
 
 function SegmentedButton(props: TSegmentedButton<TTodoFilter>) {
 
+  const { values, searchParams } = props;
+  const filterVal = searchParams.get("filter") as TTodoFilter;
+
   function handleClick(e: MouseEvent<HTMLButtonElement>) {
     const newFilterValue = e.currentTarget.value as TTodoFilter;
+    searchParams.set("filter", newFilterValue);
 
-    props.handler(newFilterValue);
+    window.history.replaceState({}, "", `${location.pathname}?${searchParams}`);
   }
 
   return (
@@ -148,13 +151,13 @@ function SegmentedButton(props: TSegmentedButton<TTodoFilter>) {
       className="grid grid-cols-3 gap-1 mx-auto mb-4 p-1 w-fit border border-t-gray-300 rounded-lg"
     >
       {
-        props.values.map(value => (
+        values.map(value => (
           <li
             key={value}
           >
             <button
+              className={filterVal === value ? "w-full bg-white text-black rounded p-1 text-center" : "w-full text-center rounded p-1 hover:bg-gray-600"}
               value={value}
-              className={props.currentFilterValue === value ? "w-full bg-white text-black rounded p-1 text-center" : "w-full text-center rounded p-1 hover:bg-gray-600"}
               onClick={handleClick}
             >
               {value}
@@ -166,9 +169,6 @@ function SegmentedButton(props: TSegmentedButton<TTodoFilter>) {
   )
 }
 
-type TSortOrder = "asc" | "desc";
-type TLayout = "list" | "grid";
-
 type TTodoList = {
   todos: TTodo[];
   handleTodoTextChange: (form: HTMLFormElement, ref: RefObject<HTMLDialogElement>) => void;
@@ -177,21 +177,19 @@ type TTodoList = {
 }
 
 function TodoList(props: TTodoList) {
-  const [sortOrder, setOrder] = useState<TSortOrder>("asc");
-  const [layout, setLayout] = useState<TLayout>("list");
-  const [filter, setFilter] = useState<TTodoFilter>("all");
+  const searchParamsObj = new URLSearchParams(location.search);
 
-  /* useEffect(() => {
-    const params = new URLSearchParams(location.search);
+  const filter: TTodoFilter = searchParamsObj.get("filter") as TTodoFilter;
 
-    params.set("sortOrder", sortOrder);
-    params.set("layout", layout);
-    params.set("filter", filter);
+  useEffect(() => {
+    const filterParamExists = searchParamsObj.has("filter");
+    if (!filterParamExists) {
+      // setting default filter value if absent
+      searchParamsObj.set("filter", "all");
+    }
 
-    window.history.replaceState({}, "", `${location.pathname}?${params}`);
-  }, [sortOrder, layout, filter]) */
-
-  // add, edit and remove todos as well as sort, filter and display them as list or grid
+    window.history.replaceState({}, "", `${location.pathname}?${searchParamsObj}`);
+  }, [filter, searchParamsObj])
 
   function filterTodos(list: TTodo[], filter: TTodoFilter): TTodo[] {
     if (filter === "done") {
@@ -204,19 +202,19 @@ function TodoList(props: TTodoList) {
   }
 
   const listToRender = filterTodos(props.todos, filter);
-  const thereAreTodos = listToRender;
+  const thereAreTodos = listToRender.length > 0;
 
   return (
     <>
       <SegmentedButton
         values={["all", "done", "not done"]}
-        currentFilterValue={filter}
-        handler={setFilter}
+        filterValue={filter}
+        searchParams={searchParamsObj}
       />
       {
         thereAreTodos
-          ? <ul 
-              className="grid gap-1 max-h-[32rem] overflow-y-auto">
+          ? <ul
+            className="grid gap-1 max-h-[32rem] overflow-y-auto">
             {
               listToRender.map((todo, idx) => (
                 <Todo
@@ -257,7 +255,7 @@ function App() {
 
   function handleTodoTextChange(e: HTMLFormElement, ref: RefObject<HTMLDialogElement>) {
     const formData = new FormData(e);
-    
+
     const todoID = formData.get("todoID") as string;
     const newTodoText = formData.get("todo") as string;
 
@@ -272,7 +270,7 @@ function App() {
     });
 
     setList(newListOfTodos);
-    
+
     ref.current?.close();
   }
 
