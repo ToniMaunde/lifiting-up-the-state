@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import type { ChangeEvent, ChangeEventHandler, Dispatch, FormEvent, MouseEvent, MouseEventHandler, RefObject, SetStateAction } from "react";
 
 type TTodo = {
@@ -166,9 +166,6 @@ function SegmentedButton(props: TSegmentedButton<TTodoFilter>) {
   )
 }
 
-type TSortOrder = "asc" | "desc";
-type TLayout = "list" | "grid";
-
 type TTodoList = {
   todos: TTodo[];
   handleTodoTextChange: (form: HTMLFormElement, ref: RefObject<HTMLDialogElement>) => void;
@@ -177,21 +174,7 @@ type TTodoList = {
 }
 
 function TodoList(props: TTodoList) {
-  const [sortOrder, setOrder] = useState<TSortOrder>("asc");
-  const [layout, setLayout] = useState<TLayout>("list");
   const [filter, setFilter] = useState<TTodoFilter>("all");
-
-  /* useEffect(() => {
-    const params = new URLSearchParams(location.search);
-
-    params.set("sortOrder", sortOrder);
-    params.set("layout", layout);
-    params.set("filter", filter);
-
-    window.history.replaceState({}, "", `${location.pathname}?${params}`);
-  }, [sortOrder, layout, filter]) */
-
-  // add, edit and remove todos as well as sort, filter and display them as list or grid
 
   function filterTodos(list: TTodo[], filter: TTodoFilter): TTodo[] {
     if (filter === "done") {
