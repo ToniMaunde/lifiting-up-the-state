@@ -187,7 +187,7 @@ function TodoList(props: TTodoList) {
   }
 
   const listToRender = filterTodos(props.todos, filter);
-  const thereAreTodos = listToRender;
+  const thereAreTodos = listToRender.length > 0;
 
   return (
     <>
