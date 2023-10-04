@@ -194,8 +194,6 @@ function TodoList(props: TTodoList) {
     setLastRerender(Date.now());
   }
 
-  console.log(location.search);
-
   function filterTodos(list: TTodo[], filter: TTodoFilter): TTodo[] {
     if (filter === "done") {
       return list.filter(element => element.done === true);
