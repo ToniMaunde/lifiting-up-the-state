@@ -129,22 +129,15 @@ function Todo(props: TTodoProps) {
 
 type TTodoFilter = "all" | "done" | "not done";
 
-type TSegmentedButton<T> = {
+type TSegmentedButton = {
   values: string[];
-  searchParams: URLSearchParams;
+  filterValue: TTodoFilter;
+  handleFilterChange: MouseEventHandler<HTMLButtonElement>;
 }
 
-function SegmentedButton(props: TSegmentedButton<TTodoFilter>) {
+function SegmentedButton(props: TSegmentedButton) {
 
-  const { values, searchParams } = props;
-  const filterVal = searchParams.get("filter") as TTodoFilter;
-
-  function handleClick(e: MouseEvent<HTMLButtonElement>) {
-    const newFilterValue = e.currentTarget.value as TTodoFilter;
-    searchParams.set("filter", newFilterValue);
-
-    window.history.replaceState({}, "", `${location.pathname}?${searchParams}`);
-  }
+  const { values, filterValue, handleFilterChange } = props;
 
   return (
     <ul
@@ -156,9 +149,9 @@ function SegmentedButton(props: TSegmentedButton<TTodoFilter>) {
             key={value}
           >
             <button
-              className={filterVal === value ? "w-full bg-white text-black rounded p-1 text-center" : "w-full text-center rounded p-1 hover:bg-gray-600"}
+              className={filterValue === value ? "w-full bg-white text-black rounded p-1 text-center" : "w-full text-center rounded p-1 hover:bg-gray-600"}
               value={value}
-              onClick={handleClick}
+              onClick={handleFilterChange}
             >
               {value}
             </button>
@@ -179,7 +172,7 @@ type TTodoList = {
 function TodoList(props: TTodoList) {
   const searchParamsObj = new URLSearchParams(location.search);
 
-  const filter: TTodoFilter = searchParamsObj.get("filter") as TTodoFilter;
+  const filter: TTodoFilter = searchParamsObj.get("filter") as TTodoFilter ?? "all";
 
   useEffect(() => {
     const filterParamExists = searchParamsObj.has("filter");
@@ -190,6 +183,13 @@ function TodoList(props: TTodoList) {
 
     window.history.replaceState({}, "", `${location.pathname}?${searchParamsObj}`);
   }, [filter, searchParamsObj])
+
+  function handleFilterChange(e: MouseEvent<HTMLButtonElement>) {
+    const newFilterValue = e.currentTarget.value as TTodoFilter;
+    searchParamsObj.set("filter", newFilterValue);
+
+    window.history.replaceState({}, "", `${location.pathname}?${searchParamsObj}`);
+  }
 
   function filterTodos(list: TTodo[], filter: TTodoFilter): TTodo[] {
     if (filter === "done") {
@@ -209,7 +209,8 @@ function TodoList(props: TTodoList) {
       <SegmentedButton
         values={["all", "done", "not done"]}
         filterValue={filter}
-        searchParams={searchParamsObj}
+        handleFilterChange={handleFilterChange}
+        key={filter}
       />
       {
         thereAreTodos
@@ -307,7 +308,7 @@ function App() {
       <h1
         className="text-white text-2xl font-bold text-center mb-8"
       >
-        Todo app with just useState
+        Todo app with URLSearchParams
       </h1>
       <form
         method="post"
