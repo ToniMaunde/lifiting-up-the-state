@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import type { Dispatch, FormEvent, MouseEvent, SetStateAction } from "react";
+import type { ChangeEvent, ChangeEventHandler, Dispatch, FormEvent, MouseEvent, MouseEventHandler, RefObject, SetStateAction } from "react";
 
 type TTodo = {
   text: string;
@@ -8,24 +8,91 @@ type TTodo = {
   creationDate: string;
 }
 
-function Todo({ todo }: { todo: TTodo }) {
+type TTodoEditDialogProps = {
+  todo: TTodo;
+  dialogRef: RefObject<HTMLDialogElement>;
+  handleTodoTextChange: (form: HTMLFormElement, ref: RefObject<HTMLDialogElement>) => void;
+}
 
-  function handleTodoChange() {
+function TodoEditDialog(props: TTodoEditDialogProps) {
+  const { todo, dialogRef, handleTodoTextChange } = props;
 
-    console.log("clicked")
-    // changeTodoStatus(newStatus);
+  function handleSubmit(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+
+    handleTodoTextChange(e.currentTarget, dialogRef);
   }
+
+  return (
+    <dialog
+      ref={dialogRef}
+      className="w-[35vw] rounded backdrop:bg-opacity-10"
+    >
+      <form
+        className="p-4"
+        onSubmit={handleSubmit}
+      >
+        <h1>
+          Edit Todo
+        </h1>
+        <input
+          type="text"
+          defaultValue={todo.text}
+          id="todoText"
+          name="todo"
+          className="w-full h-full py-2 px-1 border-2 border-[#282C34] focus-within:outline-none focus-within:border-purple-500 rounded-sm text-black mb-4"
+          required
+          autoFocus
+          autoComplete="off"
+        />
+        <input
+          type="hidden"
+          name="todoID"
+          value={todo.id}
+        />
+        <section
+          className="flex"
+        >
+          <button
+            className="bg-purple-500 text-white py-2 px-4 rounded-sm"
+          >
+            Save changes
+          </button>
+          <button
+            className="text-[#282C34] hover:text-black focus:text-black py-2 pl-4 ml-auto rounded-sm"
+            type="button"
+            onClick={() => dialogRef.current?.close()}
+          >
+            Cancel
+          </button>
+        </section>
+      </form>
+    </dialog>
+  )
+}
+
+type TTodoProps = {
+  todo: TTodo;
+  handleTodoTextChange: (form: HTMLFormElement, ref: RefObject<HTMLDialogElement>) => void;
+  handleTodoStatusChange: ChangeEventHandler<HTMLInputElement>;
+  handleTodoDelete: MouseEventHandler<HTMLButtonElement>;
+}
+
+function Todo(props: TTodoProps) {
+
+  const { todo, handleTodoTextChange, handleTodoStatusChange, handleTodoDelete } = props;
+  const editModal = useRef<HTMLDialogElement>(null);
 
   return (
     <li
       className="flex gap-2 items-center"
     >
-      <input 
+      <input
         className="w-6 h-6 accent-purple-500"
         type="checkbox"
         checked={todo.done}
-        value={todo.id}
-        onChange={handleTodoChange}
+        id={todo.id}
+        onChange={handleTodoStatusChange}
       />
       <section>
         <p className="font-bold font-mono text-lg">
@@ -35,12 +102,27 @@ function Todo({ todo }: { todo: TTodo }) {
           {todo.creationDate}
         </small>
       </section>
-      <button
-        className="bg-red-200 h-fit py-1 px-2 ml-auto rounded-sm hover:bg-red-100"
-        title="Remove todo"
+      <section
+        className="flex gap-2 ml-auto"
       >
-        ❌
-      </button>
+        <button
+          className="bg-green-200 h-fit py-1 px-2 rounded-sm hover:bg-green-100"
+          title="Edit todo"
+          value={todo.id}
+          onClick={() => editModal.current?.showModal()}
+        >
+          ✍️
+        </button>
+        <button
+          className="bg-red-200 h-fit py-1 px-2 rounded-sm hover:bg-red-100"
+          title="Remove todo"
+          value={todo.id}
+          onClick={handleTodoDelete}
+        >
+          ❌
+        </button>
+      </section>
+      <TodoEditDialog todo={todo} dialogRef={editModal} handleTodoTextChange={handleTodoTextChange} />
     </li>
   )
 }
@@ -63,7 +145,7 @@ function SegmentedButton(props: TSegmentedButton<TTodoFilter>) {
 
   return (
     <ul
-      className="grid grid-cols-3 mx-auto mb-4 p-1 w-fit border border-t-gray-300 rounded-lg"
+      className="grid grid-cols-3 gap-1 mx-auto mb-4 p-1 w-fit border border-t-gray-300 rounded-lg"
     >
       {
         props.values.map(value => (
@@ -72,7 +154,7 @@ function SegmentedButton(props: TSegmentedButton<TTodoFilter>) {
           >
             <button
               value={value}
-              className={props.currentFilterValue === value ? "w-full bg-white text-black rounded p-1 text-center" : "w-full text-center rounded p-1"}
+              className={props.currentFilterValue === value ? "w-full bg-white text-black rounded p-1 text-center" : "w-full text-center rounded p-1 hover:bg-gray-600"}
               onClick={handleClick}
             >
               {value}
@@ -87,7 +169,14 @@ function SegmentedButton(props: TSegmentedButton<TTodoFilter>) {
 type TSortOrder = "asc" | "desc";
 type TLayout = "list" | "grid";
 
-function TodoList({ todos }: { todos: TTodo[] }) {
+type TTodoList = {
+  todos: TTodo[];
+  handleTodoTextChange: (form: HTMLFormElement, ref: RefObject<HTMLDialogElement>) => void;
+  handleTodoStatusChange: ChangeEventHandler<HTMLInputElement>;
+  handleTodoDelete: MouseEventHandler<HTMLButtonElement>;
+}
+
+function TodoList(props: TTodoList) {
   const [sortOrder, setOrder] = useState<TSortOrder>("asc");
   const [layout, setLayout] = useState<TLayout>("list");
   const [filter, setFilter] = useState<TTodoFilter>("all");
@@ -114,7 +203,7 @@ function TodoList({ todos }: { todos: TTodo[] }) {
     return list;
   }
 
-  const listToRender = filterTodos(todos, filter);
+  const listToRender = filterTodos(props.todos, filter);
   const thereAreTodos = listToRender;
 
   return (
@@ -126,17 +215,23 @@ function TodoList({ todos }: { todos: TTodo[] }) {
       />
       {
         thereAreTodos
-          ? <ul className="grid gap-1">
+          ? <ul 
+              className="grid gap-1 max-h-[32rem] overflow-y-auto">
             {
               listToRender.map((todo, idx) => (
                 <Todo
                   key={`${todo.creationDate}${idx}`}
                   todo={todo}
+                  handleTodoTextChange={props.handleTodoTextChange}
+                  handleTodoStatusChange={props.handleTodoStatusChange}
+                  handleTodoDelete={props.handleTodoDelete}
                 />
               ))
             }
           </ul>
-          : <p>
+          : <p
+            className="text-center text-white"
+          >
             There are no todos. Start adding.
           </p>
       }
@@ -160,14 +255,61 @@ function App() {
     (todoRef.current as HTMLInputElement).value = "";
   }
 
+  function handleTodoTextChange(e: HTMLFormElement, ref: RefObject<HTMLDialogElement>) {
+    const formData = new FormData(e);
+    
+    const todoID = formData.get("todoID") as string;
+    const newTodoText = formData.get("todo") as string;
+
+    const newListOfTodos = listOfTodos.map(todo => {
+      if (todo.id === todoID) {
+        const changedTodo: TTodo = { ...todo, text: newTodoText };
+
+        return changedTodo;
+      }
+
+      return todo;
+    });
+
+    setList(newListOfTodos);
+    
+    ref.current?.close();
+  }
+
+  function handleTodoStatusChange(e: ChangeEvent<HTMLInputElement>) {
+    const todoID = e.currentTarget.id;
+
+    const newStatus = e.currentTarget.checked;
+
+    const newListOfTodos = listOfTodos.map(todo => {
+      if (todo.id === todoID) {
+        const changedTodo: TTodo = { ...todo, done: newStatus };
+
+        return changedTodo;
+      }
+
+      return todo;
+    });
+
+    setList(newListOfTodos);
+  }
+
+  function handleTodoDelete(e: MouseEvent<HTMLButtonElement>) {
+    const todoID = e.currentTarget.value;
+
+    const newListOfTodos = listOfTodos.filter(todo => todo.id !== todoID);
+
+    setList(newListOfTodos);
+  }
+
   return (
     <main
       className="w-[40vw] mx-auto p-8"
     >
       <h1
-        className="text-white text-2xl font-bold mb-8"
+        className="text-white text-2xl font-bold text-center mb-8"
       >
-        Todo app with just useState()
+        Todo app with just useState
       </h1>
       <form
         method="post"
@@ -187,7 +329,7 @@ function App() {
             id="todoText"
             name="todo"
             ref={todoRef}
-            className="w-full h-full py-2 px-1 rounded-sm text-black"
+            className="w-full h-full py-2 px-1 rounded-sm outline-none border-2 border-transparent focus-within:border-purple-500 text-black"
             required
             autoFocus
             autoComplete="off"
@@ -199,7 +341,12 @@ function App() {
           </button>
         </div>
       </form>
-      <TodoList todos={listOfTodos} />
+      <TodoList
+        todos={listOfTodos}
+        handleTodoTextChange={handleTodoTextChange}
+        handleTodoStatusChange={handleTodoStatusChange}
+        handleTodoDelete={handleTodoDelete}
+      />
     </main>
   )
 }
